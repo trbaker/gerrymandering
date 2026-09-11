@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Draw the Lines — a gerrymandering game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<!-- ArcGIS Maps SDK for JavaScript (map components + core API from Esri's CDN) -->
+<script type="module" src="https://js.arcgis.com/5.1/"></script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+  <h1>Draw the Lines <span>— a gerrymandering game</span></h1>
+  <div class="spacer"></div>
+  <div class="points">Points <b id="points">0</b> / 100</div>
+  <button class="ghost" id="btn-glossary">Glossary</button>
+  <button class="ghost" id="btn-reset">Reset</button>
+</header>
+<main>
+  <nav class="rail" id="rail" aria-label="Missions"></nav>
+  <section class="stage">
+    <div id="map-host"></div>
+    <div id="svg-host"></div>
+    <div class="map-badge" id="map-badge">Loading map…</div>
+    <div class="sheet hidden" id="sheet"><div class="inner" id="sheet-inner"></div></div>
+  </section>
+  <aside class="panel" id="panel"></aside>
+</main>
+<div class="drawer" id="glossary">
+  <button class="ghost" style="float:right" id="close-glossary">Close</button>
+  <h2>Glossary</h2>
+  <dl>
+    <dt>Electoral district</dt><dd>An area whose voters elect one representative. Every U.S. state is divided into House districts with roughly equal populations.</dd>
+    <dt>Redistricting</dt><dd>Redrawing district boundaries inside a state so each district has about the same number of people. It happens after every 10-year census, once seats have been reapportioned (re-divided) among the states.</dd>
+    <dt>Gerrymandering</dt><dd>Drawing district lines to give one party or group an advantage.</dd>
+    <dt>Packing</dt><dd>Cramming the other side's voters into one district they win by a landslide, so their extra votes are wasted.</dd>
+    <dt>Cracking</dt><dd>Splitting the other side's voters across several districts so they lose all of them narrowly.</dd>
+    <dt>Shape score</dt><dd>How tidy a district's shape is (the Polsby–Popper score). 1.0 is a perfect circle; near 0 is stringy or spread out.</dd>
+  </dl>
+</div>
+
+<!-- Game logic, then the boot script (deferred so it runs after the ArcGIS SDK) -->
+<script src="game.js"></script>
+<script defer src="main.js"></script>
+</body>
+</html>
