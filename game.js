@@ -2,8 +2,8 @@
 // Meridia: 5 x 5 precincts, 100,000 people each. Value = % of voters who support the Ridge Party.
 const RIDGE = [[36,41,45,48,42],[41,57,64,61,43],[46,70,81,72,48],[43,62,68,58,45],[36,39,47,52,41]];
 const N = 5, GRID = {x0:-99.5, y1:40, size:0.4};
-const DCOL = ['#FFFFFF','#6B4FBB','#8A9A2B','#C74A7E','#3B7DD8','#A0693A'];
-const RIDGE_C = '#0F7C84', VALLEY_C = '#D3781A';
+const DCOL = ['#FFFFFF','#7C4DFF','#8BC34A','#FF4FA3','#2196F3','#C62828'];
+const RIDGE_C = '#0FA3A8', VALLEY_C = '#F28C28';
 const CD_LAYER_URL = 'https://services.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/USA_119th_Congressional_Districts/FeatureServer/0';
 const CD_ITEM_URL = 'https://www.arcgis.com/home/item.html?id=dd86c378a5d94483be9cb25996d873a4';
 const VALLEY_SOLUTION = [1,1,1,1,2, 3,3,1,2,2, 3,4,4,4,2, 3,4,5,4,2, 3,5,5,5,5];
@@ -75,7 +75,7 @@ async function makeArcgisRenderer(){
   mapEl.setAttribute('basemap','gray-vector'); mapEl.setAttribute('center','-98.5,39'); mapEl.setAttribute('zoom','7'); mapEl.setAttribute('popup-disabled','');
   $('#map-host').appendChild(mapEl);
   await Promise.race([mapEl.viewOnReady(), new Promise((_,rej)=>setTimeout(()=>rej(new Error('view timeout')),25000))]);
-  const view=mapEl.view; try{ view.popupEnabled=false; view.background={color:'#FAFAF7'}; }catch(e){}
+  const view=mapEl.view; try{ view.popupEnabled=false; view.background={color:'#EFEBFA'}; }catch(e){}
   const wgs={wkid:4326};
   const gridLayer=new GraphicsLayer(), labelLayer=new GraphicsLayer(), hiLayer=new GraphicsLayer();
   const cdLayer=new FeatureLayer({url:CD_LAYER_URL, outFields:['*'], visible:false, opacity:0.75,
