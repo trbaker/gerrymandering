@@ -46,7 +46,8 @@ section.stage{position:relative;min-height:0;background:#E6E1F5;
 .sheet .inner{max-width:700px;margin:0 auto}
 .hidden{display:none !important}
 
-aside.panel{border-left:1px solid var(--line);background:var(--panel);padding:18px;overflow:auto}
+aside.side{border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
+.panel{flex:1;padding:18px;overflow:auto}
 h2{font-size:24px;margin:0 0 8px;letter-spacing:-0.01em}
 .sheet h2{font-size:40px;color:var(--violet-deep);margin-bottom:14px}
 h3{font-size:15px;margin:16px 0 6px;color:var(--mute);text-transform:none}
@@ -89,8 +90,16 @@ p{margin:0 0 10px}
 /* explore */
 .district-card{border-radius:16px;padding:14px;margin:10px 0;background:linear-gradient(135deg,#EEE9FF,#E6F8F0)}
 .district-card .big{font-size:34px;font-weight:700;line-height:1.1;color:var(--violet-deep)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0}
+.stat .big{font-size:28px}
 .bar{height:10px;background:#fff;border-radius:999px;overflow:hidden;margin:8px 0}
 .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--coral),var(--sun),var(--mint))}
+.demo{margin-top:10px;padding-top:10px;border-top:1px solid rgba(43,30,102,.12)}
+.demo-row{display:flex;gap:12px;align-items:center;margin-bottom:6px}
+.demo-row svg{flex:none}
+.legend{list-style:none;margin:0;padding:0;font-size:13px;flex:1}
+.legend li{display:flex;align-items:center;gap:6px;padding:2px 0}
+.legend li b{margin-left:auto;font-variant-numeric:tabular-nums}
 .log{font-size:14px;margin:0;padding:0;list-style:none}
 .log li{padding:6px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:8px}
 
@@ -104,7 +113,7 @@ p{margin:0 0 10px}
 .q .why{font-size:14px;color:var(--mute);margin-top:8px}
 
 /* footer */
-footer.credit{text-align:center;font-size:13px;color:var(--mute);padding:8px 16px;background:var(--panel);border-top:1px solid var(--line)}
+footer.credit{font-size:13px;color:var(--mute);padding:8px 18px;border-top:1px solid var(--line);flex:none}
 footer.credit a{color:var(--violet);font-weight:700;text-decoration:none}
 footer.credit a:hover{text-decoration:underline}
 
@@ -119,7 +128,7 @@ footer.credit a:hover{text-decoration:underline}
   main{grid-template-columns:1fr;grid-template-rows:auto minmax(320px,52vh) auto}
   nav.rail{border-right:0;border-bottom:1px solid var(--line);display:flex;gap:4px;padding:8px;overflow-x:auto}
   nav.rail button{width:auto;white-space:nowrap;margin:0}nav.rail .t{display:none}
-  aside.panel{border-left:0;border-top:1px solid var(--line)}
+  aside.side{border-left:0;border-top:1px solid var(--line)}
   .terms{grid-template-columns:1fr}.sheet{padding:20px 16px}.sheet h2{font-size:30px}
   header h1 span{display:none}
 }

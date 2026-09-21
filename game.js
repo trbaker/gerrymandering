@@ -6,6 +6,20 @@ const DCOL = ['#FFFFFF','#7C4DFF','#8BC34A','#FF4FA3','#2196F3','#C62828'];
 const RIDGE_C = '#0FA3A8', VALLEY_C = '#F28C28';
 const CD_LAYER_URL = 'https://services.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/USA_119th_Congressional_Districts/FeatureServer/0';
 const CD_ITEM_URL = 'https://www.arcgis.com/home/item.html?id=dd86c378a5d94483be9cb25996d873a4';
+// Demographics for the real districts come from the 2020 Census "119th Congressional District Summary File".
+// The Census Bureau's API needs a free key: sign up at https://api.census.gov/data/key_signup.html and paste it here.
+// Without a key the app still shows total population and housing units (from the Census TIGERweb map service).
+const CENSUS_API_KEY = 'e715b7011299935cc675ae37cf3e838c8bea903a';
+const CENSUS_URL = 'https://api.census.gov/data/2020/dec/cd119';
+const TIGER_CD_URL = 'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Legislative/MapServer/4';
+// Race/ethnicity slices, in fixed order (validated colorblind-safe palette). Non-Hispanic race groups plus Hispanic/Latino of any race.
+const DEMO_SLICES = [
+  {key:'hisp',  label:'Hispanic or Latino', color:'#2a78d6'},
+  {key:'white', label:'White',              color:'#eb6834'},
+  {key:'black', label:'Black',              color:'#1baf7a'},
+  {key:'asian', label:'Asian',              color:'#eda100'},
+  {key:'other', label:'Other or multiracial', color:'#e87ba4'},
+];
 const VALLEY_SOLUTION = [1,1,1,1,2, 3,3,1,2,2, 3,4,4,4,2, 3,4,5,4,2, 3,5,5,5,5];
 const LEVELS = [
   {id:'learn',   title:'Learn the words',        pts:0},
@@ -147,7 +161,7 @@ const SCREENS={
       <div class="terms">
         <div class="term"><h3>Electoral district</h3>An area whose voters elect one representative. Meridia gets 5.</div>
         <div class="term"><h3>Redistricting</h3>Redrawing district lines so every district has about the same number of people.</div>
-        <div class="term"><h3>Gerrymandering</h3>Drawing lines to favor one party, by <b>packing</b> opponents into one district or <b>cracking</b> them across many.</div>
+        <div class="term"><h3>Gerrymandering</h3>Drawing lines to favor one party or group, by <b>packing</b> opponents into one district or <b>cracking</b> them across many.</div>
       </div>
       <button class="primary" onclick="go(1)">Start mission 2</button>`);
     panel.innerHTML=`<h2>How it works</h2><p>Five short missions. Finishing each one earns points, up to 100. The <b>Glossary</b> button at the top is always available.</p><p class="small mute">The map runs on ArcGIS Online. Meridia is imaginary and is drawn on top of the real map.</p>`;
@@ -158,7 +172,7 @@ const SCREENS={
     hideSheet(); R.setMode('real');
     panel.innerHTML=`
       <h2>Mission 4: Explore real districts</h2>
-      <p>These are the real U.S. House districts, streamed live from ArcGIS Online. Zoom in and <b>click any district</b> to see who represents it and its <b>shape score</b> (1.0 = a circle; near 0 = stringy).</p>
+      <p>These are the real U.S. House districts, streamed live from ArcGIS Online. Zoom in and <b>click any district</b> to see who represents it, its <b>shape score</b> (1.0 = a circle; near 0 = stringy), and who lives there according to the 2020 Census.</p>
       <div id="district-card" class="district-card"><span class="mute">Click a district to inspect it.</span></div>
       <p class="small mute">Click <b>2 districts</b> to finish. A low shape score is a clue worth investigating, not proof of gerrymandering: coastlines and rivers bend lines too.</p>
       <ul class="log" id="explore-log"></ul>
@@ -231,13 +245,76 @@ function checkPuzzle(id){
 }
 function revealSolution(){ state.solutionShown=true; state.assign=VALLEY_SOLUTION.slice(); R.drawGrid(); renderTally(); $('#solve-row').innerHTML=''; $('#puzzle-msg').innerHTML=`<div class="msg">One of several solutions. Find the packed district (the one Ridge wins by a landslide), then press Check.</div>`; }
 
+let currentDistrict=null;
 districtCb=(a,pp)=>{
-  const name=a.NAME||'Unknown', party=a.PARTY||'', st=a.STATE_ABBR||'', dist=String(a.DISTRICTID||'').slice(-2);
-  const label=`${st}${dist?'-'+dist:''}`;
-  $('#district-card').innerHTML=`<div class="mute small">${label} · ${party}</div><div><b>${name}</b></div><div class="big">${pp.toFixed(2)}</div><div class="bar"><i style="width:${Math.min(100,pp*100)}%"></i></div><div class="small mute">${pp<0.15?'Very low: an oddly shaped district worth a closer look.':pp<0.3?'Below average: somewhat irregular.':'Fairly compact.'}</div>`;
+  const name=a.NAME||'Unknown', party=a.PARTY||'', st=a.STATE_ABBR||'', stfips=String(a.STFIPS||'').padStart(2,'0'), cdfips=String(a.CDFIPS||a.DISTRICTID||'').slice(-2).padStart(2,'0');
+  const label=`${st}${cdfips?'-'+cdfips:''}`;
+  currentDistrict=label;
+  const shapeNote=pp<0.15?'Very low: an oddly shaped district worth a closer look.':pp<0.3?'Below average: somewhat irregular.':'Fairly compact.';
+  $('#district-card').innerHTML=`
+    <div class="mute small">${label} · ${party}</div><div><b>${name}</b></div>
+    <div class="stats">
+      <div class="stat"><div class="big">${pp.toFixed(2)}</div><div class="small mute">Shape score</div><div class="bar"><i style="width:${Math.min(100,pp*100)}%"></i></div></div>
+      <div class="stat" id="pop-stat"><div class="big">…</div><div class="small mute">People (2020 Census)</div></div>
+    </div>
+    <div class="small mute">${shapeNote}</div>
+    <div id="demo-box" class="demo"><span class="small mute">Loading who lives here…</span></div>`;
   if(!state.explored.find(x=>x.label===label)) state.explored.push({label,name,pp:+pp.toFixed(2)});
   save(); renderExploreLog(); if(state.explored.length>=2) exploreDone();
+  loadDemographics(label, stfips, cdfips);
 };
+
+/* ---------- demographics (2020 Census) ---------- */
+const demoCache={};
+async function loadDemographics(label, st, cd){
+  let d=demoCache[label];
+  if(!d){
+    try{ d=await fetchCensusApi(st,cd); }
+    catch(e){ console.warn('Census API unavailable:', e); try{ d=await fetchTigerPop(st+cd); }catch(e2){ console.warn('TIGERweb unavailable:', e2); d={error:true}; } }
+    demoCache[label]=d;
+  }
+  if(currentDistrict!==label) return; // user already clicked elsewhere
+  renderDemographics(d);
+}
+async function fetchCensusApi(st,cd){
+  const vars='P1_001N,P5_003N,P5_004N,P5_006N,P5_010N,P13_001N,H3_001N,H3_003N'; // H3 = occupancy status (total / vacant)
+  const url=`${CENSUS_URL}?get=${vars}&for=congressional%20district:${cd}&in=state:${st}${CENSUS_API_KEY?'&key='+encodeURIComponent(CENSUS_API_KEY):''}`;
+  const res=await fetch(url); if(!res.ok) throw new Error('Census API HTTP '+res.status+': '+(await res.text()).slice(0,200));
+  const rows=await res.json(); const h=rows[0], r=rows[1]; if(!r) throw new Error('no row');
+  const g=k=>+r[h.indexOf(k)];
+  const total=g('P1_001N'), white=g('P5_003N'), black=g('P5_004N'), asian=g('P5_006N'), hisp=g('P5_010N');
+  if(!(total>0)) throw new Error('empty population');
+  return {total, medianAge:g('P13_001N'), housing:g('H3_001N'), vacant:g('H3_003N'), slices:{hisp,white,black,asian,other:total-white-black-asian-hisp}};
+}
+async function fetchTigerPop(geoid){
+  const url=`${TIGER_CD_URL}/query?where=GEOID%3D%27${geoid}%27&outFields=POP100,HU100&returnGeometry=false&f=json`;
+  const res=await fetch(url); if(!res.ok) throw new Error('HTTP '+res.status);
+  const j=await res.json(); const f=j.features&&j.features[0]; if(!f) throw new Error('no feature');
+  const total=+f.attributes.POP100, housing=+f.attributes.HU100;
+  if(!(total>1000)) throw new Error('TIGERweb population not populated'); // guard against placeholder values
+  return {total, housing, partial:true};
+}
+function renderDemographics(d){
+  const pop=$('#pop-stat'), box=$('#demo-box'); if(!pop||!box) return;
+  if(d.error){ pop.querySelector('.big').textContent='—'; box.innerHTML=`<span class="small mute">Census data could not be loaded right now.</span>`; return; }
+  pop.querySelector('.big').textContent=d.total.toLocaleString();
+  if(d.partial){
+    box.innerHTML=`<div class="small">Housing units: <b>${d.housing.toLocaleString()}</b></div><div class="small mute">Race, ethnicity and age need a free Census API key. See the note at the top of game.js.</div>`;
+    return;
+  }
+  const total=d.total||1;
+  const parts=DEMO_SLICES.map(s=>({...s, n:d.slices[s.key], pct:d.slices[s.key]/total*100}));
+  // donut: one ring, slices in fixed order, 2px gaps between segments
+  const R0=44, C=2*Math.PI*R0; let offset=0;
+  const arcs=parts.map(p=>{ const len=Math.max(0,C*p.pct/100-2); const s=`<circle r="${R0}" cx="50" cy="50" fill="none" stroke="${p.color}" stroke-width="14" stroke-dasharray="${len} ${C-len}" stroke-dashoffset="${-offset}" transform="rotate(-90 50 50)"><title>${p.label}: ${p.pct.toFixed(1)}%</title></circle>`; offset+=C*p.pct/100; return s; }).join('');
+  box.innerHTML=`
+    <div class="demo-row">
+      <svg viewBox="0 0 100 100" width="112" height="112" role="img" aria-label="Race and ethnicity of residents">${arcs}</svg>
+      <ul class="legend">${parts.map(p=>`<li><span class="swatch" style="background:${p.color}"></span>${p.label}<b>${p.pct.toFixed(0)}%</b></li>`).join('')}</ul>
+    </div>
+    <div class="small">Median age <b>${d.medianAge}</b> · Housing units <b>${d.housing.toLocaleString()}</b> (${(d.vacant/(d.housing||1)*100).toFixed(0)}% vacant)</div>
+    <div class="small mute">2020 Census. Race groups are non-Hispanic; Hispanic or Latino is any race.</div>`;
+}
 function renderExploreLog(){ const l=$('#explore-log'); if(l) l.innerHTML=state.explored.slice(-6).map(x=>`<li><span>${x.label} — ${x.name}</span><b>${x.pp}</b></li>`).join(''); }
 function exploreDone(){
   award('explore',15);
